@@ -1956,14 +1956,31 @@ function renderSino() {
     ${NOTIFICACOES.length === 0 ? '<div class="sino-vazio">Nenhum aviso ainda.</div>' :
       NOTIFICACOES.map(n => {
         const c = Estado.candidatos.find(x => x.id === n.candidatoId);
-        if (!c) return '';
+        const icone = `<span class="sino-icone" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          </span>`;
+        if (!c) {
+          // aviso vindo do link público do formulário (localStorage, sem cadastro
+          // real ainda — é só um recado, não vira dossiê de candidato aqui).
+          if (!n.texto) return '';
+          return `
+          <div class="sino-item ${n.lida ? 'lido' : ''}" data-notificacao="${n.id}">
+            ${icone}
+            <div class="sino-corpo">
+              <div class="sino-titulo">${escapaHtml(n.texto)}</div>
+              <div class="sino-stats">Recado do link do candidato — ainda não vira dossiê aqui na demonstração.</div>
+            </div>
+            <div class="sino-lado">
+              <span class="quando">${escapaHtml(n.quando)}</span>
+              ${n.lida ? '' : '<span class="sino-ponto" aria-hidden="true"></span>'}
+            </div>
+          </div>`;
+        }
         const aguardando = c.docs.filter(d => d.s === 'pendente').length;
         const etapaTexto = c.etapa ? `${c.etapa}ª etapa` : '';
         return `
         <div class="sino-item ${n.lida ? 'lido' : ''}" data-notificacao="${n.id}">
-          <span class="sino-icone" aria-hidden="true">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          </span>
+          ${icone}
           <div class="sino-corpo">
             <div class="sino-titulo"><strong>${escapaHtml(c.nome.split(' ')[0])}</strong> enviou a documentação</div>
             <div class="sino-stats">${c.docs.length} documento(s) · ${escapaHtml(c.funcao || '—')}${etapaTexto ? ' · ' + etapaTexto : ''} · ${aguardando} aguardando conferência</div>
@@ -1993,6 +2010,25 @@ function renderSino() {
     }, 50);
   }));
 }
+/* ---- recado do formulário do candidato (mesma origem, sem servidor) ---- */
+function receberAvisoCandidato(bruto) {
+  let dados;
+  try { dados = JSON.parse(bruto); } catch (e) { return; }
+  if (!dados || !dados.texto) return;
+  NOTIFICACOES.unshift({ id: Date.now(), candidatoId: null, texto: dados.texto, quando: 'agora', lida: false });
+  renderSino();
+  mostrarAviso(dados.texto, 'sucesso');
+}
+try {
+  const avisoPendente = localStorage.getItem('da-notificacao-nova');
+  if (avisoPendente) { receberAvisoCandidato(avisoPendente); localStorage.removeItem('da-notificacao-nova'); }
+} catch (e) { /* localStorage pode estar bloqueado — não é crítico */ }
+window.addEventListener('storage', (ev) => {
+  if (ev.key !== 'da-notificacao-nova' || !ev.newValue) return;
+  receberAvisoCandidato(ev.newValue);
+  try { localStorage.removeItem('da-notificacao-nova'); } catch (e) {}
+});
+
 el('#botao-sino').addEventListener('click', () => { el('#sino-lista').hidden = !el('#sino-lista').hidden; });
 document.addEventListener('click', (ev) => {
   if (!ev.target.closest('.sino-container')) el('#sino-lista').hidden = true;
