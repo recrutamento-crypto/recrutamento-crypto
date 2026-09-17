@@ -739,7 +739,7 @@ async function abrirCamera(docId) {
 
   try {
     streamAtual = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1920 } }, audio: false,
+      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false,
     });
     el('#cam-video').srcObject = streamAtual;
     intervaloDica = setInterval(atualizarDicaAoVivo, 700);
