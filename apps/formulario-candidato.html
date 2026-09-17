@@ -216,33 +216,6 @@ button.enviar.pronto { background: var(--verde); }
 </style>
 </head>
 <body>
-<div id="portao-senha" style="position:fixed;inset:0;z-index:99999;background:#0d1b2a;color:#fff;display:flex;align-items:center;justify-content:center;font-family:sans-serif">
-  <form id="form-portao-senha" style="background:#132a3e;padding:32px;border-radius:12px;width:280px;text-align:center;box-sizing:border-box">
-    <p style="margin:0 0 14px;font-size:.9rem">Acesso restrito — demonstração interna</p>
-    <input id="campo-portao-senha" type="password" placeholder="Senha" autocomplete="off" style="width:100%;padding:10px;border-radius:8px;border:0;margin-bottom:10px;box-sizing:border-box">
-    <button type="submit" style="width:100%;padding:10px;border:0;border-radius:8px;background:#087CF5;color:#fff;font-weight:600;cursor:pointer">Entrar</button>
-    <p id="erro-portao-senha" style="color:#f09189;font-size:.8rem;margin:10px 0 0;display:none">Senha incorreta.</p>
-  </form>
-</div>
-<script>
-(function(){
-  var SENHA = 'Redentor2026';
-  var portao = document.getElementById('portao-senha');
-  if (sessionStorage.getItem('portaoOk') === '1') { portao.remove(); return; }
-  document.documentElement.style.overflow = 'hidden';
-  document.getElementById('form-portao-senha').addEventListener('submit', function(ev){
-    ev.preventDefault();
-    var valor = document.getElementById('campo-portao-senha').value;
-    if (valor === SENHA) {
-      sessionStorage.setItem('portaoOk', '1');
-      portao.remove();
-      document.documentElement.style.overflow = '';
-    } else {
-      document.getElementById('erro-portao-senha').style.display = 'block';
-    }
-  });
-})();
-</script>
 
 <main>
   <div id="topo-candidato">
