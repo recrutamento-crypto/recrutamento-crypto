@@ -140,6 +140,7 @@ main { max-width: 560px; margin: 0 auto; padding: 20px 16px 80px; }
 .doc-status.correcao { color: var(--amarelo); }
 
 .botoes-doc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.botoes-doc.somente-arquivo { grid-template-columns: 1fr; }
 .botoes-doc button, .botoes-doc label {
   display: flex; align-items: center; justify-content: center; gap: 7px;
   padding: 10px; border-radius: 8px; font-size: .82rem; font-weight: 600; text-align: center;
@@ -215,7 +216,6 @@ button.enviar.pronto { background: var(--verde); }
 </style>
 </head>
 <body>
-
 <main>
   <div id="topo-candidato">
     <span class="marca-nome">Auto Viação Redentor</span>
@@ -314,7 +314,7 @@ aplicarTema(temaInicial());
  * precisa mexer aqui, só o link já chega com a etapa certa (?v=).
  * =================================================================== */
 const DOCS = {
-  cnh_digital:   { nome: 'CNH Digital com EAR', forma: 'cartao',
+  cnh_digital:   { nome: 'CNH Digital com EAR', forma: 'cartao', semCamera: true,
     criterio: 'No app Carteira Digital de Trânsito: menu → "Exportar CNH Digital" → salvar em PDF. Não vale foto da tela.' },
   prontuario_pontos: { nome: 'Prontuário — pontuação da CNH', forma: 'retrato',
     criterio: 'Extrato de pontuação do Detran. Acima de 19 pontos reprova nesta etapa.' },
@@ -625,17 +625,17 @@ function docCardHtml(id) {
       <span class="doc-status ${status}">${rotuloStatus}</span>
     </div>
     ${d.criterio ? `<p class="doc-criterio">${escapaHtml(d.criterio)}</p>` : ''}
-    <p class="doc-passo">Antes de tirar a foto: apoie o documento numa superfície plana e bem iluminada, encaixe-o inteiro na moldura e evite reflexos.</p>
-    <div class="botoes-doc">
-      <button type="button" class="btn-camera" data-abrir-camera="${id}">📷 Tirar foto</button>
+    ${d.semCamera ? '' : '<p class="doc-passo">Antes de tirar a foto: apoie o documento numa superfície plana e bem iluminada, encaixe-o inteiro na moldura e evite reflexos.</p>'}
+    <div class="botoes-doc ${d.semCamera ? 'somente-arquivo' : ''}">
+      ${d.semCamera ? '' : `<button type="button" class="btn-camera" data-abrir-camera="${id}">📷 Tirar foto</button>`}
       <label class="btn-arquivo">Escolher arquivo
         <input type="file" class="arquivo-oculto" data-arquivo="${id}" accept="image/jpeg,image/png,application/pdf" ${d.multiplos ? 'multiple' : ''}>
       </label>
     </div>
-    <p class="doc-dica">JPG, PNG ou PDF, até 10 MB.
+    <p class="doc-dica">JPG, PNG ou PDF, até 10 MB.${d.semCamera ? '' : `
       <label class="link-camera">Usar a câmera do aparelho
         <input type="file" class="arquivo-oculto" data-arquivo-nativo="${id}" accept="image/*" capture="environment">
-      </label>
+      </label>`}
     </p>
     <div class="lista-arquivos" data-lista="${id}">${r.arquivos.map((a, i) => arquivoHtml(id, a, i)).join('')}</div>
     <div class="processando-container" data-processando="${id}"></div>
