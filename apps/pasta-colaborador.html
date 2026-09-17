@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pasta do colaborador</title>
+<style>
+:root {
+  --fundo: #f5f6f8; --superficie: #ffffff; --borda: #d9dde3;
+  --texto: #1b1f24; --texto-suave: #565f6b; --marca: #1a56db; --marca-texto: #ffffff;
+  --verde: #146c2e; --verde-bg: #e3f6e9; --amarelo: #7a5b00; --amarelo-bg: #fff3d6;
+  --vermelho: #b3261e; --vermelho-bg: #fbe6e5; --sombra: 0 1px 3px rgba(0,0,0,.08);
+}
+:root[data-tema="escuro"] {
+  --fundo: #14171c; --superficie: #1d2127; --borda: #2c313a;
+  --texto: #eef1f5; --texto-suave: #a7afbb; --marca: #6ea8fe; --marca-texto: #0b1220;
+  --verde: #7ddc9a; --verde-bg: #123322; --amarelo: #f2c94c; --amarelo-bg: #3a2f0c;
+  --vermelho: #ff8b83; --vermelho-bg: #3a1917; --sombra: 0 1px 3px rgba(0,0,0,.4);
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--fundo); color: var(--texto);
+  font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+
+header {
+  padding: 16px 24px; background: var(--superficie); border-bottom: 1px solid var(--borda);
+  display: flex; justify-content: space-between; align-items: center;
+}
+header h1 { font-size: 1.1rem; margin: 0; }
+header .subtitulo { color: var(--texto-suave); font-size: .8rem; margin: 2px 0 0; }
+#botao-tema {
+  border: 1px solid var(--borda); background: var(--fundo); border-radius: 8px;
+  width: 34px; height: 34px;
+}
+
+main { max-width: 720px; margin: 0 auto; padding: 24px; }
+
+nav.abas { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid var(--borda); }
+nav.abas button {
+  border: 0; background: none; padding: 10px 4px; margin-right: 20px; font-size: .88rem; font-weight: 600;
+  color: var(--texto-suave); border-bottom: 2px solid transparent; margin-bottom: -1px;
+}
+nav.abas button.ativa { color: var(--marca); border-bottom-color: var(--marca); }
+
+.cartao {
+  background: var(--superficie); border: 1px solid var(--borda); border-radius: 12px;
+  padding: 20px 24px; margin-bottom: 16px;
+}
+.campo { margin-bottom: 14px; }
+.campo label { display: block; font-size: .8rem; color: var(--texto-suave); margin-bottom: 4px; }
+.campo input {
+  width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--borda);
+  background: var(--fundo); color: var(--texto);
+}
+.campo .erro-campo { color: var(--vermelho); font-size: .78rem; margin-top: 4px; }
+.linha-dupla { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+#previa-mudancas {
+  background: var(--amarelo-bg); color: var(--amarelo); border-radius: 8px; padding: 12px 14px;
+  font-size: .82rem; margin-bottom: 14px;
+}
+#previa-mudancas ul { margin: 6px 0 0; padding-left: 18px; }
+
+#botao-salvar {
+  border: 0; background: var(--marca); color: var(--marca-texto); border-radius: 8px;
+  padding: 10px 18px; font-weight: 600; font-size: .85rem;
+}
+#botao-salvar:disabled { opacity: .4; cursor: not-allowed; }
+
+.historico-item {
+  padding: 10px 0; border-bottom: 1px solid var(--borda); font-size: .85rem;
+}
+.historico-item:last-child { border-bottom: 0; }
+.historico-item .quando { color: var(--texto-suave); font-size: .78rem; }
+
+.placeholder { color: var(--texto-suave); font-size: .88rem; text-align: center; padding: 40px 0; }
+
+#zona-arraste {
+  border: 2px dashed var(--borda); border-radius: 10px; padding: 32px; text-align: center;
+  color: var(--texto-suave); font-size: .88rem; cursor: pointer;
+}
+#zona-arraste.sobre-arraste { border-color: var(--marca); color: var(--marca); background: var(--fundo); }
+#resultado-integridade { margin-top: 16px; border-radius: 8px; padding: 14px 16px; font-size: .85rem; }
+#resultado-integridade.ok { background: var(--verde-bg); color: var(--verde); }
+#resultado-integridade.divergente { background: var(--vermelho-bg); color: var(--vermelho); }
+#resultado-integridade .hash-calculado { font-family: monospace; font-size: .76rem; word-break: break-all; display: block; margin-top: 6px; opacity: .85; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1 id="titulo-pasta">Pasta do colaborador</h1>
+    <p class="subtitulo" id="subtitulo-pasta">—</p>
+  </div>
+  <button id="botao-tema" type="button" aria-label="Alternar tema claro/escuro">🌙</button>
+</header>
+
+<main>
+  <nav class="abas">
+    <button type="button" class="aba ativa" data-aba="nomenclatura">Nomenclatura</button>
+    <button type="button" class="aba" data-aba="historico">Histórico</button>
+    <button type="button" class="aba" data-aba="integridade">Integridade</button>
+  </nav>
+
+  <section id="aba-nomenclatura">
+    <div class="cartao">
+      <div id="previa-mudancas" hidden></div>
+      <form id="form-ficha" novalidate>
+        <div class="linha-dupla">
+          <div class="campo">
+            <label for="campo-matricula">Matrícula</label>
+            <input id="campo-matricula" name="matricula">
+            <div class="erro-campo" id="erro-matricula" hidden></div>
+          </div>
+          <div class="campo">
+            <label for="campo-cpf">CPF</label>
+            <input id="campo-cpf" name="cpf">
+            <div class="erro-campo" id="erro-cpf" hidden></div>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="campo-nome">Nome</label>
+          <input id="campo-nome" name="nome">
+          <div class="erro-campo" id="erro-nome" hidden></div>
+        </div>
+        <div class="linha-dupla">
+          <div class="campo">
+            <label for="campo-cargo">Cargo</label>
+            <input id="campo-cargo" name="cargo">
+          </div>
+          <div class="campo">
+            <label for="campo-admissao">Data de admissão</label>
+            <input id="campo-admissao" name="admissao" placeholder="dd/mm/aaaa">
+            <div class="erro-campo" id="erro-admissao" hidden></div>
+          </div>
+        </div>
+        <button type="submit" id="botao-salvar" disabled>Salvar</button>
+      </form>
+    </div>
+  </section>
+
+  <section id="aba-historico" hidden>
+    <div class="cartao" id="lista-historico"></div>
+  </section>
+
+  <section id="aba-integridade" hidden>
+    <div class="cartao">
+      <p style="color:var(--texto-suave);font-size:.85rem;margin:0 0 14px">
+        Confere se um arquivo é exatamente o que está arquivado, sem enviar nada para lugar nenhum:
+        o hash é calculado aqui no navegador e comparado com o que você colar do manifesto.
+      </p>
+      <div id="zona-arraste" tabindex="0" role="button" aria-label="Soltar arquivo para conferir">
+        <span id="zona-arraste-texto">Solte um arquivo aqui, ou clique para escolher</span>
+        <input id="arquivo-integridade" type="file" style="display:none">
+      </div>
+      <div class="campo" style="margin-top:16px">
+        <label for="hash-manifesto">SHA-256 do manifesto</label>
+        <input id="hash-manifesto" placeholder="Cole aqui o sha256 do manifesto.json">
+      </div>
+      <div id="resultado-integridade" hidden></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+
+function el(sel) { return document.querySelector(sel); }
+function elAll(sel) { return Array.from(document.querySelectorAll(sel)); }
+function escapaHtml(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---- tema (mesmo esquema do painel principal) ---- */
+function aplicarTema(tema) {
+  document.documentElement.setAttribute('data-tema', tema);
+  el('#botao-tema').textContent = tema === 'escuro' ? '☀️' : '🌙';
+  localStorage.setItem('da-tema', tema);
+}
+function temaInicial() {
+  const salvo = localStorage.getItem('da-tema');
+  if (salvo) return salvo;
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'escuro' : 'claro';
+}
+el('#botao-tema').addEventListener('click', () => {
+  aplicarTema(document.documentElement.getAttribute('data-tema') === 'escuro' ? 'claro' : 'escuro');
+});
+aplicarTema(temaInicial());
+
+/* ---- abas ---- */
+elAll('nav.abas .aba').forEach(btn => {
+  btn.addEventListener('click', () => {
+    elAll('nav.abas .aba').forEach(b => b.classList.toggle('ativa', b === btn));
+    ['nomenclatura', 'historico', 'integridade'].forEach(nome => {
+      el('#aba-' + nome).hidden = nome !== btn.dataset.aba;
+    });
+  });
+});
+
+/* ---- dados: query string sobrepõe o exemplo, como uma "página avulsa" que
+   recebeu o colaborador de quem a abriu (Colaboradores → Abrir pasta) ---- */
+const parametros = new URLSearchParams(location.search);
+const Colaborador = {
+  matricula: parametros.get('matricula') || '4830',
+  cpf: parametros.get('cpf') || '041.882.310-33',
+  nome: parametros.get('nome') || 'Jonas Ferreira de Lima',
+  cargo: parametros.get('funcao') || 'Motorista',
+  admissao: parametros.get('admissao') || '15/09/2026',
+};
+const HISTORICO_DEMO = [
+  { quando: '15/09/2026 09:52', texto: 'Pasta criada por Maria RH — matrícula 4830.' },
+  { quando: '15/09/2026 09:40', texto: 'Todos os documentos da 1ª etapa aprovados.' },
+];
+
+function atualizarCabecalho() {
+  el('#titulo-pasta').textContent = Colaborador.nome;
+  el('#subtitulo-pasta').textContent = `${Colaborador.cpf} · matrícula ${Colaborador.matricula || '—'} · ${Colaborador.cargo}`;
+}
+
+function preencherFormulario() {
+  el('#campo-matricula').value = Colaborador.matricula;
+  el('#campo-cpf').value = Colaborador.cpf;
+  el('#campo-nome').value = Colaborador.nome;
+  el('#campo-cargo').value = Colaborador.cargo;
+  el('#campo-admissao').value = Colaborador.admissao;
+}
+
+function renderHistorico() {
+  el('#lista-historico').innerHTML = HISTORICO_DEMO.map(h => `
+    <div class="historico-item">
+      <div class="quando">${escapaHtml(h.quando)}</div>
+      <div>${escapaHtml(h.texto)}</div>
+    </div>`).join('') || '<p class="placeholder">Sem histórico ainda.</p>';
+}
+
+/* ---- integridade: SHA-256 calculado no navegador, nada é enviado ---- */
+async function sha256DeArquivo(arquivo) {
+  const buffer = await arquivo.arrayBuffer();
+  const digest = await crypto.subtle.digest('SHA-256', buffer);
+  return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+async function conferirArquivo(arquivo) {
+  const alvo = el('#resultado-integridade');
+  alvo.hidden = false;
+  alvo.className = '';
+  alvo.textContent = 'Calculando…';
+  const hashCalculado = await sha256DeArquivo(arquivo);
+  const hashEsperado = el('#hash-manifesto').value.trim().toLowerCase();
+
+  if (!hashEsperado) {
+    alvo.innerHTML = `Hash do arquivo calculado — cole o do manifesto para comparar.<span class="hash-calculado">${hashCalculado}</span>`;
+    return;
+  }
+  const bate = hashCalculado === hashEsperado;
+  alvo.className = bate ? 'ok' : 'divergente';
+  alvo.innerHTML = (bate
+    ? '✓ Confere — o arquivo é exatamente o que está no manifesto.'
+    : '✗ Não confere — este arquivo foi alterado ou é outro arquivo.')
+    + `<span class="hash-calculado">${hashCalculado}</span>`;
+}
+
+const zona = el('#zona-arraste');
+zona.addEventListener('click', () => el('#arquivo-integridade').click());
+zona.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') el('#arquivo-integridade').click(); });
+el('#arquivo-integridade').addEventListener('change', (ev) => { if (ev.target.files[0]) conferirArquivo(ev.target.files[0]); });
+['dragenter', 'dragover'].forEach(evento => zona.addEventListener(evento, (ev) => {
+  ev.preventDefault(); zona.classList.add('sobre-arraste');
+}));
+['dragleave', 'drop'].forEach(evento => zona.addEventListener(evento, (ev) => {
+  ev.preventDefault(); zona.classList.remove('sobre-arraste');
+}));
+zona.addEventListener('drop', (ev) => {
+  const arquivo = ev.dataTransfer.files[0];
+  if (arquivo) conferirArquivo(arquivo);
+});
+el('#hash-manifesto').addEventListener('input', () => {
+  if (el('#resultado-integridade').querySelector('.hash-calculado') && !el('#resultado-integridade').hidden) {
+    const hashCalculado = el('#resultado-integridade').querySelector('.hash-calculado').textContent;
+    const hashEsperado = el('#hash-manifesto').value.trim().toLowerCase();
+    if (!hashEsperado) return;
+    const bate = hashCalculado === hashEsperado;
+    const alvo = el('#resultado-integridade');
+    alvo.className = bate ? 'ok' : 'divergente';
+    alvo.innerHTML = (bate ? '✓ Confere — o arquivo é exatamente o que está no manifesto.'
+      : '✗ Não confere — este arquivo foi alterado ou é outro arquivo.') + `<span class="hash-calculado">${hashCalculado}</span>`;
+  }
+});
+
+/* ---- validação campo a campo: um cadastro antigo com CPF torto não pode
+   travar a correção do cargo — só valida o que a pessoa mexeu. ---- */
+function validaCpf(v) {
+  const d = v.replace(/\D/g, '');
+  return d.length === 11 ? '' : 'CPF precisa ter 11 dígitos.';
+}
+function validaData(v) {
+  if (!v.trim()) return '';
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(v) ? '' : 'Use o formato dd/mm/aaaa.';
+}
+function validaNome(v) { return v.trim().length >= 3 ? '' : 'Nome precisa ter pelo menos 3 letras.'; }
+
+const CAMPOS = [
+  { chave: 'matricula', input: '#campo-matricula', erro: null,              valida: null },
+  { chave: 'cpf',       input: '#campo-cpf',       erro: '#erro-cpf',       valida: validaCpf },
+  { chave: 'nome',      input: '#campo-nome',      erro: '#erro-nome',      valida: validaNome },
+  { chave: 'cargo',     input: '#campo-cargo',     erro: null,              valida: null },
+  { chave: 'admissao',  input: '#campo-admissao',  erro: '#erro-admissao',  valida: validaData },
+];
+
+function estaSujo() {
+  return CAMPOS.some(c => el(c.input).value.trim() !== String(Colaborador[c.chave] ?? '').trim());
+}
+function validarTudo() {
+  let ok = true;
+  for (const c of CAMPOS) {
+    if (!c.valida) continue;
+    const msg = c.valida(el(c.input).value);
+    if (c.erro) { el(c.erro).textContent = msg; el(c.erro).hidden = !msg; }
+    if (msg) ok = false;
+  }
+  return ok;
+}
+function atualizarPreVisualizacao() {
+  const mudancas = [];
+  for (const c of CAMPOS) {
+    const novo = el(c.input).value.trim();
+    const antigo = String(Colaborador[c.chave] ?? '').trim();
+    if (novo !== antigo) mudancas.push(`${rotuloCampo(c.chave)}: "${antigo || '—'}" → "${novo || '—'}"`);
+  }
+  const cpfMudou = el('#campo-cpf').value.trim() !== Colaborador.cpf;
+  const nomeMudou = el('#campo-nome').value.trim() !== Colaborador.nome;
+  if (cpfMudou || nomeMudou) {
+    mudancas.push('O CPF ou o nome mudou: os arquivos dentro da pasta serão renomeados junto.');
+  }
+  const alvo = el('#previa-mudancas');
+  if (!mudancas.length) { alvo.hidden = true; return; }
+  alvo.hidden = false;
+  alvo.innerHTML = 'Isto vai mudar:<ul>' + mudancas.map(m => `<li>${escapaHtml(m)}</li>`).join('') + '</ul>';
+}
+function rotuloCampo(chave) {
+  return { matricula: 'Matrícula', cpf: 'CPF', nome: 'Nome', cargo: 'Cargo', admissao: 'Admissão' }[chave] || chave;
+}
+
+CAMPOS.forEach(c => {
+  el(c.input).addEventListener('input', () => {
+    el('#botao-salvar').disabled = !estaSujo();
+    atualizarPreVisualizacao();
+  });
+});
+
+el('#form-ficha').addEventListener('submit', (ev) => {
+  ev.preventDefault();
+  if (!validarTudo()) return;
+
+  const antesNome = Colaborador.nome, antesCpf = Colaborador.cpf;
+  CAMPOS.forEach(c => { Colaborador[c.chave] = el(c.input).value.trim(); });
+
+  HISTORICO_DEMO.unshift({
+    quando: new Date().toLocaleString('pt-BR'),
+    texto: (Colaborador.nome !== antesNome || Colaborador.cpf !== antesCpf)
+      ? 'Cadastro atualizado — nome ou CPF mudou, arquivos renomeados.'
+      : 'Cadastro atualizado.',
+  });
+
+  atualizarCabecalho();
+  renderHistorico();
+  el('#botao-salvar').disabled = true;
+  el('#previa-mudancas').hidden = true;
+});
+
+atualizarCabecalho();
+preencherFormulario();
+renderHistorico();
+</script>
+</body>
+</html>
