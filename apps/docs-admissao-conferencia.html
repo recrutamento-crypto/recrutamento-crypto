@@ -1322,6 +1322,16 @@ const NOMES_DOC = {
   cnh: 'CNH Digital com EAR', pontuacao: 'Prontuário de pontos', ctps: 'CTPS',
   toxicologico: 'Exame toxicológico', cursos: 'Cursos', rg: 'RG', cpf: 'CPF',
   comprovante_residencia: 'Comprovante de residência',
+  // ids como vêm de formulario-candidato.html (DOCS) — os candidatos reais,
+  // vindos do link público, usam esse catálogo, não o de cima.
+  cnh_digital: 'CNH Digital com EAR', prontuario_pontos: 'Prontuário — pontuação da CNH',
+  ctps_experiencia: 'Carteira de Trabalho Digital', cursos_escolaridade: 'Cursos de capacitação e escolaridade',
+  rg_doc: 'RG', cpf_doc: 'CPF', pis_doc: 'PIS/PASEP/NIS', titulo_eleitor: 'Título de eleitor',
+  reservista_militar: 'Certificado de reservista', antecedentes: 'Antecedentes criminais',
+  residencia: 'Comprovante de residência', conta_itau: 'Comprovante de conta bancária',
+  casamento_conjuge: 'Certidão de casamento + RG/CPF do cônjuge', filhos_docs: 'Documentos dos filhos',
+  vacinacao_filhos: 'Carteira de vacinação dos filhos', cursos_extras: 'Cursos extras',
+  escolaridade_2: 'Comprovante de escolaridade',
 };
 
 const Estado = {
@@ -2010,12 +2020,40 @@ function renderSino() {
     }, 50);
   }));
 }
-/* ---- recado do formulário do candidato (mesma origem, sem servidor) ---- */
+/* ---- recado do formulário do candidato (mesma origem, sem servidor) ----
+   Sem backend, o envio chega pelo localStorage com o conteúdo real dos
+   documentos (data: URL) — dá pra montar um candidato de verdade na tela
+   de Conferência, não só um aviso solto. Continua valendo só no mesmo
+   navegador/aparelho: é uma simulação de demonstração, não persiste em
+   nenhum servidor. */
 function receberAvisoCandidato(bruto) {
   let dados;
   try { dados = JSON.parse(bruto); } catch (e) { return; }
   if (!dados || !dados.texto) return;
-  NOTIFICACOES.unshift({ id: Date.now(), candidatoId: null, texto: dados.texto, quando: 'agora', lida: false });
+
+  let candidatoId = null;
+  if (Array.isArray(dados.docs) && dados.docs.length) {
+    candidatoId = Estado.candidatos.reduce((max, c) => Math.max(max, c.id), 0) + 1;
+    Estado.candidatos.push({
+      id: candidatoId,
+      nome: dados.nome || 'Candidato sem nome informado',
+      cpf: dados.cpf || '',
+      funcao: dados.funcao || '',
+      vaga: dados.vaga || '',
+      etapa: dados.etapa || 1,
+      situacao: 'ativo',
+      quando: 'agora mesmo',
+      criadoEm: dados.criadoEm || '',
+      enviadoEm: dados.enviadoEm || '',
+      docs: dados.docs,
+    });
+    renderCandidatos();
+    renderDocumentos();
+    renderPendenciasLista();
+    renderQuadro();
+  }
+
+  NOTIFICACOES.unshift({ id: Date.now(), candidatoId, texto: dados.texto, quando: 'agora', lida: false });
   renderSino();
   mostrarAviso(dados.texto, 'sucesso');
 }

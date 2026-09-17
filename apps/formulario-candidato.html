@@ -396,6 +396,14 @@ function carregarImagem(arquivo) {
     img.src = URL.createObjectURL(arquivo);
   });
 }
+function paraDataUrl(arquivo) {
+  return new Promise((resolve, reject) => {
+    const leitor = new FileReader();
+    leitor.onload = () => resolve(leitor.result);
+    leitor.onerror = reject;
+    leitor.readAsDataURL(arquivo);
+  });
+}
 function paraCanvasCinza(img, ladoMax = 760) {
   const escala = Math.min(1, ladoMax / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.max(1, Math.round(img.naturalWidth * escala));
@@ -714,6 +722,9 @@ async function processarArquivos(docId, arquivos) {
       Respostas[docId].arquivos.push(item);
     } else {
       item.url = URL.createObjectURL(arquivo);
+      // blob: só existe nesta aba — o envio ao RH (outra aba) precisa de um
+      // data: URL, que sobrevive gravado no localStorage.
+      item.dataUrl = await paraDataUrl(arquivo);
       const img = await carregarImagem(arquivo);
       item.largura = img.naturalWidth; item.altura = img.naturalHeight;
       if (!semAnaliseDeImagem) {
@@ -823,6 +834,21 @@ function mostrarAviso(msg) {
 }
 
 /* ---- envio ---- */
+function construirDocsEnviados() {
+  return listaDocsDaEtapa
+    .filter(id => Respostas[id] && Respostas[id].arquivos.length)
+    .map(id => {
+      const r = Respostas[id];
+      const primeiro = r.arquivos[0];
+      return {
+        d: id,
+        p: primeiro.analise ? primeiro.analise.nota : 100,
+        s: 'pendente',
+        meta: r.arquivos.map(a => a.nome).join(', '),
+        url: primeiro.dataUrl || null, // PDF não tem preview de imagem — fica null
+      };
+    });
+}
 el('#botao-enviar').addEventListener('click', () => {
   const botao = el('#botao-enviar');
   if (botao.disabled) return;
@@ -830,11 +856,23 @@ el('#botao-enviar').addEventListener('click', () => {
   botao.disabled = true;
 
   // avisa o painel do RH se estiver aberto na mesma origem (mesmo navegador) —
-  // sem servidor, é só isso que dá para sincronizar entre as duas abas.
+  // sem servidor, é só isso que dá para sincronizar entre as duas abas. Vai
+  // junto o conteúdo real dos documentos, pra virar um candidato de verdade
+  // na tela de Conferência, não só um recado sem dossiê.
   try {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const funcaoDoPerfil = (Perfil.nome.split('—')[1] || Perfil.nome).trim();
     localStorage.setItem('da-notificacao-nova', JSON.stringify({
       texto: `${Candidato.nome || 'Um candidato'} enviou a documentação (${Perfil.nome}).`,
       quando: new Date().toISOString(),
+      nome: Candidato.nome || 'Candidato sem nome informado',
+      cpf: Candidato.cpf || '',
+      funcao: funcaoDoPerfil,
+      vaga: `${funcaoDoPerfil} · ${Perfil.ordinal} etapa`,
+      etapa: chaveEtapa === 'contratacao' ? 2 : 1,
+      criadoEm: hoje,
+      enviadoEm: hoje,
+      docs: construirDocsEnviados(),
     }));
   } catch (e) { /* localStorage pode estar bloqueado — não é crítico */ }
 });
