@@ -514,7 +514,7 @@ function docCompleto(id) {
   if (r.forcado) return true;
   if (!r.arquivos.length) return false;
   if (doc(id).multiplos && r.arquivos.length < totalArquivosNecessarios(id)) return false;
-  return r.arquivos.every(a => a.pdf || (a.analise && a.analise.aprovado));
+  return r.arquivos.every(a => a.pdf || doc(id).semCamera || (a.analise && a.analise.aprovado));
 }
 function docStatus(id) {
   const r = Respostas[id];
@@ -703,6 +703,11 @@ async function processarArquivos(docId, arquivos) {
     container.innerHTML = `<div class="esqueleto" style="width:70%"></div><div class="esqueleto" style="width:40%"></div>`;
 
     const ehPdf = arquivo.type === 'application/pdf';
+    /* documentos sem câmera (extrato/print oficial) não têm "qualidade de
+       foto" pra medir — nitidez, luz e sobretudo enquadramento não fazem
+       sentido pra quem exportou um PDF/print, então pulam a régua de
+       imagem mesmo quando o arquivo enviado é uma imagem, não um PDF. */
+    const semAnaliseDeImagem = doc(docId).semCamera;
     const item = { nome: arquivo.name, tamanho: arquivo.size, tamanhoTexto: tamanhoTexto(arquivo.size), pdf: ehPdf };
 
     if (ehPdf) {
@@ -711,8 +716,10 @@ async function processarArquivos(docId, arquivos) {
       item.url = URL.createObjectURL(arquivo);
       const img = await carregarImagem(arquivo);
       item.largura = img.naturalWidth; item.altura = img.naturalHeight;
-      item.analise = await analisarImagem(arquivo);
-      if (!item.analise.aprovado) Respostas[docId].tentativas++;
+      if (!semAnaliseDeImagem) {
+        item.analise = await analisarImagem(arquivo);
+        if (!item.analise.aprovado) Respostas[docId].tentativas++;
+      }
       Respostas[docId].arquivos.push(item);
     }
     container.innerHTML = '';
